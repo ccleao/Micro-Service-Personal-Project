@@ -14,14 +14,11 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-
 public class ProductService {
-
 
     private final ProductRepository productRepository;
 
-
-    public void createProduct(ProductRequest productRequest){
+    public void createProduct(ProductRequest productRequest) {
         Product product = Product.builder()
                 .name(productRequest.getName())
                 .description(productRequest.getDescription())
@@ -45,6 +42,5 @@ public class ProductService {
                 .description(product.getDescription())
                 .price(product.getPrice())
                 .build();
-
     }
 }

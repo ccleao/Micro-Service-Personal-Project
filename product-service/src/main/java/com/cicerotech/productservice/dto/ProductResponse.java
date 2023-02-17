@@ -10,10 +10,9 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
 @Builder
-
+@AllArgsConstructor
+@NoArgsConstructor
 public class ProductResponse {
     private String id;
     private String name;
