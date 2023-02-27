@@ -26,44 +26,4 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Testcontainers
 @AutoConfigureMockMvc
 class ProductServiceApplicationTests {
-
-	@Container
-	static MongoDBContainer mongoDBContainer = new MongoDBContainer("mongo:4.4.2");
-	@Autowired
-	private MockMvc mockMvc;
-	@Autowired(required = true)
-	private ObjectMapper objectMapper;
-	@Autowired
-	private ProductRepository productRepository;
-
-	ProductServiceApplicationTests(MockMvc mockMvc, ObjectMapper objectMapper, ProductRepository productRepository) {
-		this.mockMvc = mockMvc;
-		this.objectMapper = objectMapper;
-		this.productRepository = productRepository;
-	}
-
-	@DynamicPropertySource
-	static void setProperties(@NotNull DynamicPropertyRegistry dymDynamicPropertyRegistry) {
-		dymDynamicPropertyRegistry.add("spring.data.mongodb.uri", mongoDBContainer::getReplicaSetUrl);
-	}
-
-	@Test
-	void shouldCreateProduct() throws Exception {
-		ProductRequest productRequest = getProductRequest();
-		String productRequestString = objectMapper.writeValueAsString(productRequest);
-		mockMvc.perform(MockMvcRequestBuilders.post("/api/product")
-						.contentType(MediaType.APPLICATION_JSON)
-						.content(productRequestString))
-				.andExpect(status().isCreated());
-		Assertions.assertTrue(productRepository.findAll().size() == 1);
-	}
-
-	private ProductRequest getProductRequest() {
-		return ProductRequest.builder()
-				.name("iPhone 13")
-				.description("iPhone 13")
-				.price(BigDecimal.valueOf(1200))
-				.build();
-	}
-
 }

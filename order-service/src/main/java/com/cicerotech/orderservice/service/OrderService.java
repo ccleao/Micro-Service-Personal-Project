@@ -1,5 +1,7 @@
 package com.cicerotech.orderservice.service;
 
+import brave.Span;
+import brave.Tracer;
 import com.cicerotech.orderservice.dto.InventoryResponse;
 import com.cicerotech.orderservice.dto.OrderLineItemsDto;
 import com.cicerotech.orderservice.dto.OrderRequest;
@@ -8,8 +10,6 @@ import com.cicerotech.orderservice.model.Order;
 import com.cicerotech.orderservice.model.OrderLineItems;
 import com.cicerotech.orderservice.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.cloud.sleuth.Span;
-import org.springframework.cloud.sleuth.Tracer;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,7 +45,10 @@ public class OrderService {
                 .toList();
 
         Span inventoryServiceLookup = tracer.nextSpan().name("InventoryServiceLookup");
-        try(Tracer.SpanInScope spanInScope = tracer.withSpan(inventoryServiceLookup.start())){
+
+        try (Tracer.SpanInScope isLookup = tracer.withSpanInScope(inventoryServiceLookup.start())) {
+
+            inventoryServiceLookup.tag("call", "inventory-service");
             // Call Inventory Service, and place order if product is in
             // stock
             InventoryResponse[] inventoryResponseArray = webClientBuilder.build().get()
@@ -55,23 +58,19 @@ public class OrderService {
                     .bodyToMono(InventoryResponse[].class)
                     .block();
 
-            assert inventoryResponseArray != null;
             boolean allProductsInStock = Arrays.stream(inventoryResponseArray)
                     .allMatch(InventoryResponse::isInStock);
 
-            if(allProductsInStock){
+            if (allProductsInStock) {
                 orderRepository.save(order);
                 kafkaTemplate.send("notificationTopic", new OrderPlacedEvent(order.getOrderNumber()));
                 return "Order Placed Successfully";
             } else {
                 throw new IllegalArgumentException("Product is not in stock, please try again later");
             }
-
-        }finally {
-            inventoryServiceLookup.end();
+        } finally {
+            inventoryServiceLookup.flush();
         }
-
-
     }
 
     private OrderLineItems mapToDto(OrderLineItemsDto orderLineItemsDto) {
